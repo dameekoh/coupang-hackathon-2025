@@ -1,7 +1,7 @@
 import type { Product, APIProductResponse } from '../types/product';
 
 const API_URL = 'https://hungryai.asmirabdimazhit.com/chat';
-const SESSION_ID = 'voice-shopping-session';
+const SESSION_ID = 'eats1';
 
 /**
  * Maps API response to Product type
