@@ -1,5 +1,10 @@
+import VoiceButton from './components/VoiceButton';
+import MicIcon from './assets/mic.svg';
+
 export default function App() {
   return (
-    <h1>Hello world</h1>
+    <div className="flex items-center justify-center min-h-screen">
+      <VoiceButton icon={MicIcon} />
+    </div>
   )
 }
