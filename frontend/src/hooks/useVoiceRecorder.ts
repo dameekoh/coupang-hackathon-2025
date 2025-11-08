@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 
 interface UseVoiceRecorderReturn {
   isRecording: boolean;
+  isProcessing: boolean;
   transcript: string;
   interimTranscript: string;
   error: string | null;
@@ -13,10 +14,13 @@ interface UseVoiceRecorderReturn {
 
 export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const [isRecording, setIsRecording] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const processingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check if browser supports Web Speech API
   const isSupported = typeof window !== 'undefined' &&
@@ -37,6 +41,11 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     recognition.lang = 'en-US';
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
+      // Clear existing silence timer when speech is detected
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+      }
+
       let interim = '';
       let final = '';
 
@@ -53,6 +62,13 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
         setTranscript((prev) => prev + final);
       }
       setInterimTranscript(interim);
+
+      // Start new silence timer (2 seconds)
+      silenceTimerRef.current = setTimeout(() => {
+        if (recognitionRef.current) {
+          recognitionRef.current.stop();
+        }
+      }, 2000);
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -64,6 +80,17 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     recognition.onend = () => {
       setIsRecording(false);
       setInterimTranscript('');
+      // Clear silence timer when recognition ends
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
+
+      // Start 5-second processing state
+      setIsProcessing(true);
+      processingTimerRef.current = setTimeout(() => {
+        setIsProcessing(false);
+      }, 5000);
     };
 
     recognitionRef.current = recognition;
@@ -71,6 +98,12 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
+      }
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+      }
+      if (processingTimerRef.current) {
+        clearTimeout(processingTimerRef.current);
       }
     };
   }, [isSupported]);
@@ -95,6 +128,11 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     if (recognitionRef.current && isRecording) {
       recognitionRef.current.stop();
     }
+    // Clear silence timer when manually stopping
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
   };
 
   const resetTranscript = () => {
@@ -105,6 +143,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
 
   return {
     isRecording,
+    isProcessing,
     transcript,
     interimTranscript,
     error,

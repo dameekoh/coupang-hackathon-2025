@@ -22,6 +22,7 @@ interface VoiceButtonProps
     VariantProps<typeof voiceButtonVariants> {
     icon: string;
     isRecording?: boolean;
+    isProcessing?: boolean;
 }
 
 export default function VoiceButton({
@@ -29,15 +30,18 @@ export default function VoiceButton({
     variant,
     className,
     isRecording = false,
+    isProcessing = false,
     ...props
 }: VoiceButtonProps) {
     const isPrimary = variant === 'primary';
+    const showSpinner = isProcessing;
 
     return (
         <motion.button
             className={voiceButtonVariants({ variant, className })}
             animate={isRecording ? { scale: [1, 1.05, 1] } : { scale: 1 }}
             transition={isRecording ? { duration: 1.5, repeat: Infinity } : {}}
+            disabled={isProcessing}
             {...props}
         >
             {isPrimary ? (
@@ -75,8 +79,16 @@ export default function VoiceButton({
                                 background: '#3856FC',
                             }}
                         >
-                            {/* Icon in center */}
-                            <img src={icon} alt="Microphone" className="w-[18px] h-[18px]" />
+                            {/* Icon or Spinner in center */}
+                            {showSpinner ? (
+                                <motion.div
+                                    className="w-6 h-6 border-2 border-white border-t-transparent rounded-full"
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                />
+                            ) : (
+                                <img src={icon} alt="Microphone" className="w-[18px] h-[18px]" />
+                            )}
                         </div>
                     </div>
                 </>

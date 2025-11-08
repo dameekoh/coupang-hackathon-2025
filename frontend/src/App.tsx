@@ -7,6 +7,7 @@ import MicIcon from './assets/mic.svg';
 export default function App() {
   const {
     isRecording,
+    isProcessing,
     transcript,
     interimTranscript,
     error,
@@ -16,6 +17,9 @@ export default function App() {
   } = useVoiceRecorder();
 
   const handleMicClick = () => {
+    // Prevent clicking during processing
+    if (isProcessing) return;
+
     if (isRecording) {
       stopRecording();
     } else {
@@ -27,14 +31,15 @@ export default function App() {
     }
   };
 
+  // Show primary variant when processing, secondary when recording
   const variant = isRecording ? 'secondary' : 'primary';
 
   return (
     <div className="relative flex items-end justify-center min-h-screen pb-36">
       <div className="relative flex items-center justify-center">
-        {/* Ellipse decoration that appears during recording */}
+        {/* Ellipse decoration that appears during recording or processing */}
         <AnimatePresence>
-          {isRecording && (
+          {(isRecording) && (
             <motion.div
               className="absolute"
               style={{
@@ -70,6 +75,7 @@ export default function App() {
             icon={MicIcon}
             variant={variant}
             isRecording={isRecording}
+            isProcessing={isProcessing}
             onClick={handleMicClick}
           />
         </div>
