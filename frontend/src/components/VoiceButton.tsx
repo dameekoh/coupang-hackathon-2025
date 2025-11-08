@@ -21,18 +21,25 @@ interface VoiceButtonProps
     extends Omit<React.ComponentProps<typeof motion.button>, 'children'>,
     VariantProps<typeof voiceButtonVariants> {
     icon: string;
+    isRecording?: boolean;
 }
 
 export default function VoiceButton({
     icon,
     variant,
     className,
+    isRecording = false,
     ...props
 }: VoiceButtonProps) {
     const isPrimary = variant === 'primary';
 
     return (
-        <motion.button className={voiceButtonVariants({ variant, className })} {...props}>
+        <motion.button
+            className={voiceButtonVariants({ variant, className })}
+            animate={isRecording ? { scale: [1, 1.05, 1] } : { scale: 1 }}
+            transition={isRecording ? { duration: 1.5, repeat: Infinity } : {}}
+            {...props}
+        >
             {isPrimary ? (
                 <>
                     {/* Outer ellipse - 78x78 */}
