@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { motion } from 'motion/react';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 const voiceButtonVariants = cva(
@@ -17,7 +18,7 @@ const voiceButtonVariants = cva(
 );
 
 interface VoiceButtonProps
-    extends React.ComponentProps<'button'>,
+    extends Omit<React.ComponentProps<typeof motion.button>, 'children'>,
     VariantProps<typeof voiceButtonVariants> {
     icon: string;
 }
@@ -31,7 +32,7 @@ export default function VoiceButton({
     const isPrimary = variant === 'primary';
 
     return (
-        <button className={voiceButtonVariants({ variant, className })} {...props}>
+        <motion.button className={voiceButtonVariants({ variant, className })} {...props}>
             {isPrimary ? (
                 <>
                     {/* Outer ellipse - 78x78 */}
@@ -107,7 +108,7 @@ export default function VoiceButton({
                     </div>
                 </div>
             )}
-        </button>
+        </motion.button>
     );
 }
 
