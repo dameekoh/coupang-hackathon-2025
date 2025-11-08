@@ -19,8 +19,8 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const [interimTranscript, setInterimTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const processingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const silenceTimerRef = useRef<number | null>(null);
+  const processingTimerRef = useRef<number | null>(null);
 
   // Check if browser supports Web Speech API
   const isSupported = typeof window !== 'undefined' &&
