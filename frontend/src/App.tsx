@@ -14,27 +14,43 @@ export default function App() {
         {/* Ellipse decoration that appears during hold */}
         <AnimatePresence>
           {isHolding && (
-            <motion.div
-              className="absolute"
-              style={{
-                width: '638px',
-                height: '538px',
-                borderRadius: '50%',
-                background: 'linear-gradient(180deg, #FFFFFF 23%, #ECE0FF 42%, #BEC8FF 58%)',
-                zIndex: 0,
-                bottom: '-269px',
-                filter: 'drop-shadow(0px 4px 20px rgba(0, 0, 0, 0.15))',
-              }}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.2 }}
-            />
+            <>
+              <motion.div
+                className="absolute"
+                style={{
+                  width: '638px',
+                  height: '538px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(180deg, #FFFFFF 23%, #ECE0FF 42%, #BEC8FF 58%)',
+                  zIndex: 0,
+                  bottom: '-256px',
+                  filter: 'drop-shadow(0px 4px 20px rgba(0, 0, 0, 0.15))',
+                }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.2 }}
+              />
+              {/* bottom ellipse (cancel button) */}
+              <div className="absolute flex items-start justify-center pt-8"
+                style={{
+                  width: '638px',
+                  height: '538px',
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                  zIndex: 0,
+                  bottom: '-580px',
+                  filter: 'drop-shadow(0px 4px 20px rgba(0, 0, 0, 0.15))',
+                }}
+              >
+                <p className="text-xl font-medium text-gray-700">취소</p>
+              </div>
+            </>
           )}
         </AnimatePresence>
 
         {/* Voice Button */}
-        <div className="relative z-10">
+        <div className="relative z-10 pb-16">
           <VoiceButton
             icon={MicIcon}
             variant={variant}
