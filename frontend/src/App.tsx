@@ -31,20 +31,7 @@ export default function App() {
                 exit={{ opacity: 0, scale: 0.8 }}
                 transition={{ duration: 0.2 }}
               />
-              {/* bottom ellipse (cancel button) */}
-              <div className="absolute flex items-start justify-center pt-8"
-                style={{
-                  width: '638px',
-                  height: '538px',
-                  borderRadius: '50%',
-                  background: '#ffffff',
-                  zIndex: 0,
-                  bottom: '-580px',
-                  filter: 'drop-shadow(0px 4px 20px rgba(0, 0, 0, 0.15))',
-                }}
-              >
-                <p className="text-xl font-medium text-gray-700">취소</p>
-              </div>
+
             </>
           )}
         </AnimatePresence>
