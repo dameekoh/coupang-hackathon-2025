@@ -1,24 +1,16 @@
 import { motion } from 'motion/react';
 import CartItem from './CartItem';
-import type { Product } from '../types/product';
+import { useCartItems, useCartItemCount, useCartTotalPrice } from '../stores/cartStore';
 
 interface CartPageProps {
-  items: (Product & { cartQuantity: number })[];
-  totalPrice: number;
-  itemCount: number;
   onBack: () => void;
-  onQuantityChange: (id: string, newQuantity: number) => void;
-  onRemove: (id: string) => void;
 }
 
-export default function CartPage({
-  items,
-  totalPrice,
-  itemCount,
-  onBack,
-  onQuantityChange,
-  onRemove,
-}: CartPageProps) {
+export default function CartPage({ onBack }: CartPageProps) {
+  const items = useCartItems();
+  const itemCount = useCartItemCount();
+  const totalPrice = useCartTotalPrice();
+
   return (
     <motion.div
       className="fixed inset-0 bg-white z-50 flex flex-col"
@@ -73,12 +65,7 @@ export default function CartPage({
           </div>
         ) : (
           items.map((item) => (
-            <CartItem
-              key={item.id}
-              item={item}
-              onQuantityChange={onQuantityChange}
-              onRemove={onRemove}
-            />
+            <CartItem key={item.id} item={item} />
           ))
         )}
       </div>

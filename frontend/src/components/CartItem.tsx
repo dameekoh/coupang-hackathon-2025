@@ -1,22 +1,22 @@
 import type { Product } from '../types/product';
+import { useCartStore } from '../stores/cartStore';
 
 interface CartItemProps {
   item: Product & { cartQuantity: number };
-  onQuantityChange: (id: string, newQuantity: number) => void;
-  onRemove: (id: string) => void;
 }
 
-export default function CartItem({ item, onQuantityChange, onRemove }: CartItemProps) {
+export default function CartItem({ item }: CartItemProps) {
+  const { updateQuantity, removeFromCart } = useCartStore();
   const handleDecrease = () => {
     if (item.cartQuantity > 1) {
-      onQuantityChange(item.id, item.cartQuantity - 1);
+      updateQuantity(item.id, item.cartQuantity - 1);
     } else {
-      onRemove(item.id);
+      removeFromCart(item.id);
     }
   };
 
   const handleIncrease = () => {
-    onQuantityChange(item.id, item.cartQuantity + 1);
+    updateQuantity(item.id, item.cartQuantity + 1);
   };
 
   return (
@@ -67,7 +67,7 @@ export default function CartItem({ item, onQuantityChange, onRemove }: CartItemP
       {/* Price and Remove */}
       <div className="flex flex-col items-end gap-2">
         <button
-          onClick={() => onRemove(item.id)}
+          onClick={() => removeFromCart(item.id)}
           className="text-gray-400 hover:text-gray-600"
         >
           ✕

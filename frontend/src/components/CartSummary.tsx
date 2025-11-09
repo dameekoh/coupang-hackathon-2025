@@ -1,13 +1,14 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useEffect, useState } from 'react';
+import { useCartItemCount, useCartTotalPrice } from '../stores/cartStore';
 
 interface CartSummaryProps {
-  itemCount: number;
-  totalPrice: number;
   onClick?: () => void;
 }
 
-export default function CartSummary({ itemCount, totalPrice, onClick }: CartSummaryProps) {
+export default function CartSummary({ onClick }: CartSummaryProps) {
+  const itemCount = useCartItemCount();
+  const totalPrice = useCartTotalPrice();
   const [showPlusOne, setShowPlusOne] = useState(false);
   const [prevCount, setPrevCount] = useState(itemCount);
 

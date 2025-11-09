@@ -7,7 +7,7 @@ import VoicePrompt from './components/VoicePrompt';
 import CartSummary from './components/CartSummary';
 import CartPage from './components/CartPage';
 import { useVoiceRecorder } from './hooks/useVoiceRecorder';
-import { useCart } from './hooks/useCart';
+import { useCartStore, useCartItemCount } from './stores/cartStore';
 import type { Product } from './types/product';
 import MicIcon from './assets/mic.svg';
 
@@ -42,32 +42,43 @@ export default function App() {
     clearCommand,
   } = useVoiceRecorder();
 
-  const { items, itemCount, totalPrice, addToCart, removeFromCart, updateQuantity } = useCart();
+  const itemCount = useCartItemCount();
+  const { addToCart } = useCartStore();
   const [currentView, setCurrentView] = useState<ViewType>('voice');
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   // When processing ends, show the product and start listening
   useEffect(() => {
-    if (!isProcessing && transcript && currentView === 'voice') {
+    if (!isProcessing && !isRecording && transcript && currentView === 'voice') {
       // In real app, fetch product based on transcript
       // For now, just show mock product
       setCurrentProduct(MOCK_PRODUCT);
       setCurrentView('product');
+
+      // Clear old transcript before starting new recording
+      resetTranscript();
 
       // Auto-start recording to listen for voice commands
       setTimeout(() => {
         startRecording();
       }, 500);
     }
-  }, [isProcessing, transcript, currentView]);
+  }, [isProcessing, isRecording, transcript, currentView]);
 
   // Handle voice commands
   useEffect(() => {
     if (!detectedCommand) return;
 
     if (detectedCommand === 'add' && currentProduct) {
-      // Auto add to cart when "add" is spoken
-      handleAddToCart();
+      // Show confirmation animation
+      setShowConfirmation(true);
+
+      // After brief animation (500ms), add to cart
+      setTimeout(() => {
+        handleAddToCart();
+        setShowConfirmation(false);
+      }, 500);
     } else if (detectedCommand === 'cart') {
       // Navigate to cart page when "장바구니" is spoken
       setCurrentView('cart');
@@ -96,9 +107,8 @@ export default function App() {
   const handleAddToCart = () => {
     if (currentProduct) {
       addToCart(currentProduct);
-      setCurrentView('voice');
-      setCurrentProduct(null);
-      resetTranscript();
+      setCurrentView('product');
+      // Keep the product visible, don't clear it
     }
   };
 
@@ -118,14 +128,7 @@ export default function App() {
       {/* Cart Page */}
       <AnimatePresence>
         {currentView === 'cart' && (
-          <CartPage
-            items={items}
-            itemCount={itemCount}
-            totalPrice={totalPrice}
-            onBack={handleBackFromCart}
-            onQuantityChange={updateQuantity}
-            onRemove={removeFromCart}
-          />
+          <CartPage onBack={handleBackFromCart} />
         )}
       </AnimatePresence>
 
@@ -138,8 +141,60 @@ export default function App() {
           </div>
 
           {/* Product Card */}
-          <div className="mt-20">
-            <ProductCard product={currentProduct} onAdd={handleAddToCart} />
+          <div className="mt-20 relative">
+            {/* Product Card with conditional opacity */}
+            <motion.div
+              animate={{
+                opacity: transcript.trim() || interimTranscript.trim() ? 0.4 : 1
+              }}
+              transition={{ duration: 0.3 }}
+            >
+              <ProductCard product={currentProduct} onAdd={handleAddToCart} />
+            </motion.div>
+
+            {/* Transcript Overlay */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <TranscriptionDisplay
+                transcript={transcript}
+                interimTranscript={interimTranscript}
+                isRecording={isRecording}
+                error={error}
+              />
+            </div>
+
+            {/* Confirmation Animation Overlay */}
+            <AnimatePresence>
+              {showConfirmation && (
+                <motion.div
+                  className="absolute inset-0 flex items-center justify-center bg-white/90 rounded-3xl z-30"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <motion.div
+                    className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: [0, 1.2, 1] }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    <svg
+                      className="w-16 h-16 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={3}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Mic Button */}
@@ -155,11 +210,7 @@ export default function App() {
 
           {/* Cart Summary */}
           {itemCount > 0 && (
-            <CartSummary
-              itemCount={itemCount}
-              totalPrice={totalPrice}
-              onClick={handleCartClick}
-            />
+            <CartSummary onClick={handleCartClick} />
           )}
         </div>
       ) : currentView === 'voice' ? (
@@ -212,11 +263,7 @@ export default function App() {
 
           {/* Cart Summary */}
           {itemCount > 0 && (
-            <CartSummary
-              itemCount={itemCount}
-              totalPrice={totalPrice}
-              onClick={handleCartClick}
-            />
+            <CartSummary onClick={handleCartClick} />
           )}
         </div>
       ) : null}
