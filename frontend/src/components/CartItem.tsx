@@ -43,26 +43,26 @@ export default function CartItem({ item }: CartItemProps) {
           {item.name}
         </h3>
         {item.brand && (
-          <p className="text-xs text-gray-600 mt-1">{item.brand}</p>
+          <p className="text-xs text-gray-900 mt-1">{item.brand}</p>
         )}
         {item.origin && (
-          <p className="text-xs text-gray-500 mt-1">{item.origin}</p>
+          <p className="text-xs text-gray-900 mt-1">{item.origin}</p>
         )}
 
         {/* Quantity Controls */}
         <div className="flex items-center gap-2 mt-2">
           <button
             onClick={handleDecrease}
-            className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded-md hover:bg-gray-50"
+            className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded-md hover:bg-gray-50 text-gray-900"
           >
             −
           </button>
-          <span className="text-sm font-medium min-w-[20px] text-center">
+          <span className="text-sm font-medium min-w-[20px] text-center text-gray-900">
             {item.cartQuantity}
           </span>
           <button
             onClick={handleIncrease}
-            className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded-md hover:bg-gray-50"
+            className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded-md hover:bg-gray-50 text-gray-900"
           >
             +
           </button>
