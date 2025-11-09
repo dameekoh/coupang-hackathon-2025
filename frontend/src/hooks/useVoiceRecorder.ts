@@ -29,6 +29,11 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const silenceTimerRef = useRef<number | null>(null);
   const isListeningRef = useRef(false);
   const stopRestartRef = useRef(false);
+  const transcriptRef = useRef('');
+
+  useEffect(() => {
+    transcriptRef.current = transcript;
+  }, [transcript]);
 
   useEffect(() => {
     isListeningRef.current = isListening;
@@ -87,16 +92,15 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       }
 
       if (final) {
-        setTranscript(prev => {
-          const newTranscript = prev + final;
-          const command = detectCommand(newTranscript);
-          if (command) {
-            setDetectedCommand(command);
-          }
-          return newTranscript;
-        });
+        setTranscript(prev => prev + final);
       }
       setInterimTranscript(interim);
+
+      const potentialTranscript = transcriptRef.current + final + interim;
+      const command = detectCommand(potentialTranscript);
+      if (command) {
+        setDetectedCommand(command);
+      }
 
       silenceTimerRef.current = setTimeout(() => {
         console.log('[silence] Silence detected, stopping listening.');
@@ -119,7 +123,6 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     recognition.onend = () => {
       console.log('[onend] Recognition ended');
       setIsRecording(false);
-      setIsListening(false);
       setInterimTranscript('');
       if (silenceTimerRef.current) {
         clearTimeout(silenceTimerRef.current);

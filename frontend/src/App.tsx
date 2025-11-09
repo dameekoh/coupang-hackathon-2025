@@ -36,10 +36,11 @@ export default function App() {
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [isProductAdded, setIsProductAdded] = useState(false);
 
   // When listening stops with transcript, fetch product from API
   useEffect(() => {
-    if (!isListening && transcript && currentView === 'voice' && !isProcessing) {
+    if (!isListening && transcript && !isProcessing && !detectedCommand) {
       const fetchProduct = async () => {
         try {
           console.log('[App] Fetching product for transcript:', transcript);
@@ -51,6 +52,7 @@ export default function App() {
           if (product) {
             setCurrentProduct(product);
             setCurrentView('product');
+            setIsProductAdded(false); // Reset for new product
             resetTranscript();
             
             // Auto-start listening for voice commands
@@ -72,7 +74,7 @@ export default function App() {
 
       fetchProduct();
     }
-  }, [isListening, transcript, currentView]);
+  }, [isListening, transcript, isProcessing, detectedCommand]);
 
   // Handle voice commands
   useEffect(() => {
@@ -109,7 +111,13 @@ export default function App() {
     if (isListening) {
       stopListening();
     } else {
-      if (currentView !== 'voice') {
+      // If we are on the product view and the item has been added,
+      // clicking the mic should start a new search.
+      if (currentView === 'product' && isProductAdded) {
+        setCurrentView('voice');
+        setCurrentProduct(null);
+        setIsProductAdded(false);
+      } else if (currentView !== 'voice') {
         setCurrentView('voice');
         setCurrentProduct(null);
       }
@@ -121,7 +129,7 @@ export default function App() {
   const handleAddToCart = () => {
     if (currentProduct) {
       addToCart(currentProduct);
-      setCurrentView('product');
+      setIsProductAdded(true);
     }
   };
 
@@ -130,7 +138,13 @@ export default function App() {
   };
 
   const handleBackFromCart = () => {
-    setCurrentView('voice');
+    // If returning from cart to a product view where item was added,
+    // go back to main voice screen instead.
+    if (currentView === 'product' && isProductAdded) {
+      setCurrentView('voice');
+    } else {
+      setCurrentView('voice');
+    }
   };
 
   const variant = isListening ? 'secondary' : 'primary';
@@ -145,14 +159,16 @@ export default function App() {
 
       {currentView === 'product' && currentProduct ? (
         <div className="relative flex flex-col items-center justify-center min-h-screen w-full px-6 pb-32">
-          <div className="absolute top-8 z-20">
-            <VoicePrompt text="Do you want me to add it?" />
-          </div>
+          {!isProductAdded && (
+            <div className="absolute top-8 z-20">
+              <VoicePrompt text="Do you want me to add it?" />
+            </div>
+          )}
 
           <div className="mt-20 relative">
             <motion.div
               animate={{
-                opacity: transcript.trim() || interimTranscript.trim() ? 0.4 : 1
+                opacity: transcript.trim() || interimTranscript.trim() || isProductAdded ? 0.4 : 1
               }}
               transition={{ duration: 0.3 }}
             >
