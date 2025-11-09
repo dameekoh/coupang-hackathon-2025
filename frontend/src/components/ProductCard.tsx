@@ -18,7 +18,7 @@ export default function ProductCard({ product, onAdd }: ProductCardProps) {
       <div className="relative aspect-square bg-gray-100">
         <img
           src={product.image}
-          alt={product.nameKo}
+          alt={product.name}
           className="w-full h-full object-cover"
         />
       </div>
@@ -27,24 +27,49 @@ export default function ProductCard({ product, onAdd }: ProductCardProps) {
       <div className="p-6">
         {/* Product Name */}
         <h2 className="text-xl font-bold text-gray-900 mb-2">
-          {product.nameKo}
+          {product.name}
         </h2>
 
-        {/* Origin */}
-        <p className="text-sm text-gray-600 mb-3">
-          {product.origin}
-        </p>
+        {/* Brand */}
+        {product.brand && (
+          <p className="text-sm text-gray-600 mb-2">
+            {product.brand}
+          </p>
+        )}
 
-        {/* Rating */}
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-yellow-500 text-lg">⭐</span>
-          <span className="text-base font-medium text-gray-900">
-            {product.rating.toFixed(1)}
-          </span>
-          <span className="text-sm text-gray-500">
-            ({product.reviewCount.toLocaleString()})
-          </span>
-        </div>
+        {/* Description */}
+        {product.description && (
+          <p className="text-sm text-gray-700 mb-3 line-clamp-2">
+            {product.description}
+          </p>
+        )}
+
+        {/* Origin (only if provided) */}
+        {product.origin && (
+          <p className="text-sm text-gray-600 mb-3">
+            {product.origin}
+          </p>
+        )}
+
+        {/* Rating (only if provided) */}
+        {product.rating !== undefined && product.reviewCount !== undefined && (
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-yellow-500 text-lg">⭐</span>
+            <span className="text-base font-medium text-gray-900">
+              {product.rating.toFixed(1)}
+            </span>
+            <span className="text-sm text-gray-500">
+              ({product.reviewCount.toLocaleString()})
+            </span>
+          </div>
+        )}
+
+        {/* Delivery Days */}
+        {product.deliveryDays && (
+          <p className="text-sm text-green-600 mb-3">
+            🚚 {product.deliveryDays}일 배송
+          </p>
+        )}
 
         {/* Price and Add Button */}
         <div className="flex items-center justify-between">
@@ -52,9 +77,11 @@ export default function ProductCard({ product, onAdd }: ProductCardProps) {
             <p className="text-2xl font-bold text-gray-900">
               {product.price.toLocaleString()}원
             </p>
-            <p className="text-sm text-gray-500">
-              {product.pricePerUnit}
-            </p>
+            {product.pricePerUnit && (
+              <p className="text-sm text-gray-500">
+                {product.pricePerUnit}
+              </p>
+            )}
           </div>
 
           <button

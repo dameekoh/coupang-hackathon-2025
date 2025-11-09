@@ -32,7 +32,7 @@ export default function CartItem({ item }: CartItemProps) {
       <div className="w-20 h-20 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
         <img
           src={item.image}
-          alt={item.nameKo}
+          alt={item.name}
           className="w-full h-full object-cover"
         />
       </div>
@@ -40,9 +40,14 @@ export default function CartItem({ item }: CartItemProps) {
       {/* Product Details */}
       <div className="flex-1 min-w-0">
         <h3 className="text-sm font-medium text-gray-900 truncate">
-          {item.nameKo}
+          {item.name}
         </h3>
-        <p className="text-xs text-gray-500 mt-1">{item.origin}</p>
+        {item.brand && (
+          <p className="text-xs text-gray-600 mt-1">{item.brand}</p>
+        )}
+        {item.origin && (
+          <p className="text-xs text-gray-500 mt-1">{item.origin}</p>
+        )}
 
         {/* Quantity Controls */}
         <div className="flex items-center gap-2 mt-2">

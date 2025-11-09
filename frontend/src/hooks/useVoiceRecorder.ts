@@ -11,6 +11,7 @@ interface UseVoiceRecorderReturn {
   stopRecording: () => void;
   resetTranscript: () => void;
   clearCommand: () => void;
+  setProcessing: (processing: boolean) => void;
   isSupported: boolean;
 }
 
@@ -24,6 +25,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const silenceTimerRef = useRef<number | null>(null);
   const processingTimerRef = useRef<number | null>(null);
+  const isManualStopRef = useRef(false);
 
   // Detect voice commands from transcript
   const detectCommand = (text: string): 'add' | 'cart' | null => {
@@ -60,6 +62,11 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
+    recognition.onstart = () => {
+      console.log('[onstart] Recording actually started');
+      setIsRecording(true);
+    };
+
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       // Clear existing silence timer when speech is detected
       if (silenceTimerRef.current) {
@@ -79,14 +86,18 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       }
 
       if (final) {
-        const newTranscript = transcript + final;
-        setTranscript(newTranscript);
+        // Use functional update to avoid stale closure
+        setTranscript(prev => {
+          const newTranscript = prev + final;
 
-        // Detect command from the new transcript
-        const command = detectCommand(newTranscript);
-        if (command) {
-          setDetectedCommand(command);
-        }
+          // Detect command from the new transcript
+          const command = detectCommand(newTranscript);
+          if (command) {
+            setDetectedCommand(command);
+          }
+
+          return newTranscript;
+        });
       }
       setInterimTranscript(interim);
 
@@ -105,6 +116,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     };
 
     recognition.onend = () => {
+      console.log('[onend] Called', { isManualStop: isManualStopRef.current });
       setIsRecording(false);
       setInterimTranscript('');
       // Clear silence timer when recognition ends
@@ -113,11 +125,12 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
         silenceTimerRef.current = null;
       }
 
-      // Start 5-second processing state
-      setIsProcessing(true);
-      processingTimerRef.current = setTimeout(() => {
-        setIsProcessing(false);
-      }, 5000);
+      // Processing state will be managed by App.tsx during API call
+      // No artificial delay here anymore
+      console.log('[onend] Processing state will be handled by API call');
+
+      // Reset manual stop flag
+      isManualStopRef.current = false;
     };
 
     recognitionRef.current = recognition;
@@ -136,6 +149,8 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   }, [isSupported]);
 
   const startRecording = () => {
+    console.log('[startRecording] Called', { isSupported, hasRecognition: !!recognitionRef.current, isRecording });
+
     if (!isSupported || !recognitionRef.current) {
       setError('Speech recognition not available');
       return;
@@ -143,6 +158,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
 
     // Don't start if already recording
     if (isRecording) {
+      console.log('[startRecording] Already recording, skipping');
       return;
     }
 
@@ -155,16 +171,20 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
 
     try {
       setError(null);
+      console.log('[startRecording] Calling recognition.start()');
       recognitionRef.current.start();
-      setIsRecording(true);
+      console.log('[startRecording] start() called, waiting for onstart event');
     } catch (err) {
-      console.error('Error starting recording:', err);
+      console.error('[startRecording] Error:', err);
       setError('Failed to start recording. Please check microphone permissions.');
     }
   };
 
   const stopRecording = () => {
+    console.log('[stopRecording] Called', { isRecording });
     if (recognitionRef.current && isRecording) {
+      isManualStopRef.current = true; // Mark as manual stop
+      console.log('[stopRecording] Calling recognition.stop()');
       recognitionRef.current.stop();
     }
     // Clear silence timer when manually stopping
@@ -185,6 +205,10 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     setDetectedCommand(null);
   };
 
+  const setProcessingState = (processing: boolean) => {
+    setIsProcessing(processing);
+  };
+
   return {
     isRecording,
     isProcessing,
@@ -196,6 +220,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     stopRecording,
     resetTranscript,
     clearCommand,
+    setProcessing: setProcessingState,
     isSupported,
   };
 }
@@ -215,6 +240,7 @@ interface SpeechRecognition extends EventTarget {
   start: () => void;
   stop: () => void;
   abort: () => void;
+  onstart: () => void;
   onerror: (event: SpeechRecognitionErrorEvent) => void;
   onresult: (event: SpeechRecognitionEvent) => void;
   onend: () => void;

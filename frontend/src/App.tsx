@@ -8,23 +8,9 @@ import CartSummary from './components/CartSummary';
 import CartPage from './components/CartPage';
 import { useVoiceRecorder } from './hooks/useVoiceRecorder';
 import { useCartStore, useCartItemCount } from './stores/cartStore';
+import { fetchProductRecommendations } from './services/api';
 import type { Product } from './types/product';
 import MicIcon from './assets/mic.svg';
-
-// Mock product data (will be replaced with API call based on transcript)
-const MOCK_PRODUCT: Product = {
-  id: '1',
-  name: 'Frozen Broccoli Mix',
-  nameKo: '브로컬리 믹스 (냉동), 1kg, 1개',
-  image: 'https://images.unsplash.com/photo-1628773822990-202f1c852074?w=500&h=500&fit=crop',
-  price: 4600,
-  pricePerUnit: '100g당 460원',
-  rating: 4.8,
-  reviewCount: 1634,
-  origin: '원산지: 상품 상세설명 참조',
-  weight: '1kg',
-  quantity: 1,
-};
 
 type ViewType = 'voice' | 'product' | 'cart';
 
@@ -40,6 +26,7 @@ export default function App() {
     stopRecording,
     resetTranscript,
     clearCommand,
+    setProcessing,
   } = useVoiceRecorder();
 
   const itemCount = useCartItemCount();
@@ -47,37 +34,71 @@ export default function App() {
   const [currentView, setCurrentView] = useState<ViewType>('voice');
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
-  // When processing ends, show the product and start listening
+  // When recording stops with transcript, fetch product from API
   useEffect(() => {
-    if (!isProcessing && !isRecording && transcript && currentView === 'voice') {
-      // In real app, fetch product based on transcript
-      // For now, just show mock product
-      setCurrentProduct(MOCK_PRODUCT);
-      setCurrentView('product');
+    if (!isRecording && transcript && currentView === 'voice' && !isProcessing) {
+      const fetchProduct = async () => {
+        try {
+          console.log('[App] Fetching product for transcript:', transcript);
+          setProcessing(true);
+          setApiError(null);
 
-      // Clear old transcript before starting new recording
-      resetTranscript();
+          const product = await fetchProductRecommendations(transcript);
 
-      // Auto-start recording to listen for voice commands
-      setTimeout(() => {
-        startRecording();
-      }, 500);
+          if (product) {
+            setCurrentProduct(product);
+            setCurrentView('product');
+
+            // Clear old transcript before starting new recording
+            resetTranscript();
+
+            // Auto-start recording to listen for voice commands
+            setTimeout(() => {
+              startRecording();
+            }, 500);
+          } else {
+            setApiError('No products found for your request');
+            resetTranscript();
+          }
+        } catch (err) {
+          console.error('[App] Error fetching product:', err);
+          setApiError('Failed to fetch products. Please try again.');
+          resetTranscript();
+        } finally {
+          setProcessing(false);
+        }
+      };
+
+      fetchProduct();
     }
-  }, [isProcessing, isRecording, transcript, currentView]);
+  }, [isRecording, transcript, currentView]);
 
   // Handle voice commands
   useEffect(() => {
     if (!detectedCommand) return;
 
     if (detectedCommand === 'add' && currentProduct) {
+      console.log('[App] Add command detected, stopping recording');
+      // Stop recording and clear transcript immediately
+      stopRecording();
+      resetTranscript();
+
       // Show confirmation animation
       setShowConfirmation(true);
 
-      // After brief animation (500ms), add to cart
+      // After brief animation (500ms), add to cart and restart recording
       setTimeout(() => {
+        console.log('[App] Confirmation complete, adding to cart');
         handleAddToCart();
         setShowConfirmation(false);
+
+        // Restart recording after brief delay
+        setTimeout(() => {
+          console.log('[App] Attempting to restart recording');
+          startRecording();
+        }, 300);
       }, 500);
     } else if (detectedCommand === 'cart') {
       // Navigate to cart page when "장바구니" is spoken
@@ -245,7 +266,7 @@ export default function App() {
                 transcript={transcript}
                 interimTranscript={interimTranscript}
                 isRecording={isRecording}
-                error={error}
+                error={error || apiError}
               />
             </div>
 
