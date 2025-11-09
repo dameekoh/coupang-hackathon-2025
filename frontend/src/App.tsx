@@ -16,7 +16,6 @@ type ViewType = 'voice' | 'product' | 'cart';
 
 export default function App() {
   const {
-    isRecording,
     isListening,
     isProcessing,
     transcript,
@@ -54,7 +53,7 @@ export default function App() {
             setCurrentView('product');
             setIsProductAdded(false); // Reset for new product
             resetTranscript();
-            
+
             // Auto-start listening for voice commands
             setTimeout(() => {
               startListening();
