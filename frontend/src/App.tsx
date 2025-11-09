@@ -17,13 +17,14 @@ type ViewType = 'voice' | 'product' | 'cart';
 export default function App() {
   const {
     isRecording,
+    isListening,
     isProcessing,
     transcript,
     interimTranscript,
     error,
     detectedCommand,
-    startRecording,
-    stopRecording,
+    startListening,
+    stopListening,
     resetTranscript,
     clearCommand,
     setProcessing,
@@ -35,10 +36,11 @@ export default function App() {
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [isProductAdded, setIsProductAdded] = useState(false);
 
-  // When recording stops with transcript, fetch product from API
+  // When listening stops with transcript, fetch product from API
   useEffect(() => {
-    if (!isRecording && transcript && currentView === 'voice' && !isProcessing) {
+    if (!isListening && transcript && !isProcessing && !detectedCommand) {
       const fetchProduct = async () => {
         try {
           console.log('[App] Fetching product for transcript:', transcript);
@@ -50,13 +52,12 @@ export default function App() {
           if (product) {
             setCurrentProduct(product);
             setCurrentView('product');
-
-            // Clear old transcript before starting new recording
+            setIsProductAdded(false); // Reset for new product
             resetTranscript();
-
-            // Auto-start recording to listen for voice commands
+            
+            // Auto-start listening for voice commands
             setTimeout(() => {
-              startRecording();
+              startListening();
             }, 500);
           } else {
             setApiError('No products found for your request');
@@ -73,35 +74,31 @@ export default function App() {
 
       fetchProduct();
     }
-  }, [isRecording, transcript, currentView]);
+  }, [isListening, transcript, isProcessing, detectedCommand]);
 
   // Handle voice commands
   useEffect(() => {
     if (!detectedCommand) return;
 
     if (detectedCommand === 'add' && currentProduct) {
-      console.log('[App] Add command detected, stopping recording');
-      // Stop recording and clear transcript immediately
-      stopRecording();
+      console.log('[App] Add command detected, stopping listening');
+      stopListening();
       resetTranscript();
 
-      // Show confirmation animation
       setShowConfirmation(true);
 
-      // After brief animation (500ms), add to cart and restart recording
       setTimeout(() => {
         console.log('[App] Confirmation complete, adding to cart');
         handleAddToCart();
         setShowConfirmation(false);
 
-        // Restart recording after brief delay
+        // Restart listening after brief delay
         setTimeout(() => {
-          console.log('[App] Attempting to restart recording');
-          startRecording();
+          console.log('[App] Attempting to restart listening');
+          startListening();
         }, 300);
       }, 500);
     } else if (detectedCommand === 'cart') {
-      // Navigate to cart page when "장바구니" is spoken
       setCurrentView('cart');
     }
 
@@ -109,27 +106,30 @@ export default function App() {
   }, [detectedCommand, currentProduct]);
 
   const handleMicClick = () => {
-    // Prevent clicking during processing
     if (isProcessing) return;
 
-    if (isRecording) {
-      stopRecording();
+    if (isListening) {
+      stopListening();
     } else {
-      // Clear product screen and start new recording
-      if (currentView !== 'voice') {
+      // If we are on the product view and the item has been added,
+      // clicking the mic should start a new search.
+      if (currentView === 'product' && isProductAdded) {
+        setCurrentView('voice');
+        setCurrentProduct(null);
+        setIsProductAdded(false);
+      } else if (currentView !== 'voice') {
         setCurrentView('voice');
         setCurrentProduct(null);
       }
       resetTranscript();
-      startRecording();
+      startListening();
     }
   };
 
   const handleAddToCart = () => {
     if (currentProduct) {
       addToCart(currentProduct);
-      setCurrentView('product');
-      // Keep the product visible, don't clear it
+      setIsProductAdded(true);
     }
   };
 
@@ -138,15 +138,19 @@ export default function App() {
   };
 
   const handleBackFromCart = () => {
-    setCurrentView('voice');
+    // If returning from cart to a product view where item was added,
+    // go back to main voice screen instead.
+    if (currentView === 'product' && isProductAdded) {
+      setCurrentView('voice');
+    } else {
+      setCurrentView('voice');
+    }
   };
 
-  // Show primary variant when processing, secondary when recording
-  const variant = isRecording ? 'secondary' : 'primary';
+  const variant = isListening ? 'secondary' : 'primary';
 
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-gray-50">
-      {/* Cart Page */}
       <AnimatePresence>
         {currentView === 'cart' && (
           <CartPage onBack={handleBackFromCart} />
@@ -154,36 +158,32 @@ export default function App() {
       </AnimatePresence>
 
       {currentView === 'product' && currentProduct ? (
-        /* Product Screen */
         <div className="relative flex flex-col items-center justify-center min-h-screen w-full px-6 pb-32">
-          {/* Voice Prompt */}
-          <div className="absolute top-8 z-20">
-            <VoicePrompt text="Do you want me to add it?" />
-          </div>
+          {!isProductAdded && (
+            <div className="absolute top-8 z-20">
+              <VoicePrompt text="Do you want me to add it?" />
+            </div>
+          )}
 
-          {/* Product Card */}
           <div className="mt-20 relative">
-            {/* Product Card with conditional opacity */}
             <motion.div
               animate={{
-                opacity: transcript.trim() || interimTranscript.trim() ? 0.4 : 1
+                opacity: transcript.trim() || interimTranscript.trim() || isProductAdded ? 0.4 : 1
               }}
               transition={{ duration: 0.3 }}
             >
               <ProductCard product={currentProduct} onAdd={handleAddToCart} />
             </motion.div>
 
-            {/* Transcript Overlay */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
               <TranscriptionDisplay
                 transcript={transcript}
                 interimTranscript={interimTranscript}
-                isRecording={isRecording}
+                isRecording={isListening}
                 error={error}
               />
             </div>
 
-            {/* Confirmation Animation Overlay */}
             <AnimatePresence>
               {showConfirmation && (
                 <motion.div
@@ -218,29 +218,25 @@ export default function App() {
             </AnimatePresence>
           </div>
 
-          {/* Mic Button */}
           <div className="absolute bottom-24">
             <VoiceButton
               icon={MicIcon}
               variant="secondary"
-              isRecording={isRecording}
+              isRecording={isListening}
               isProcessing={isProcessing}
               onClick={handleMicClick}
             />
           </div>
 
-          {/* Cart Summary */}
           {itemCount > 0 && (
             <CartSummary onClick={handleCartClick} />
           )}
         </div>
       ) : currentView === 'voice' ? (
-        /* Voice Recording Screen */
         <div className="relative flex items-end justify-center min-h-screen pb-36">
           <div className="relative flex items-center justify-center">
-            {/* Ellipse decoration that appears during recording */}
             <AnimatePresence>
-              {isRecording && (
+              {isListening && (
                 <motion.div
                   className="absolute"
                   style={{
@@ -260,29 +256,26 @@ export default function App() {
               )}
             </AnimatePresence>
 
-            {/* Transcription Display on top of ellipse */}
             <div className="absolute top-[-480px] z-10 w-full">
               <TranscriptionDisplay
                 transcript={transcript}
                 interimTranscript={interimTranscript}
-                isRecording={isRecording}
+                isRecording={isListening}
                 error={error || apiError}
               />
             </div>
 
-            {/* Voice Button */}
             <div className="relative z-10">
               <VoiceButton
                 icon={MicIcon}
                 variant={variant}
-                isRecording={isRecording}
+                isRecording={isListening}
                 isProcessing={isProcessing}
                 onClick={handleMicClick}
               />
             </div>
           </div>
 
-          {/* Cart Summary */}
           {itemCount > 0 && (
             <CartSummary onClick={handleCartClick} />
           )}

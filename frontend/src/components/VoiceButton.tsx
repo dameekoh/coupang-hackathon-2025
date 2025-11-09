@@ -115,15 +115,23 @@ export default function VoiceButton({
                             boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.1)',
                         }}
                     >
-                        {/* Icon in center with blue color */}
-                        <img
-                            src={icon}
-                            alt="Icon"
-                            className="w-[18px] h-[18px]"
-                            style={{
-                                filter: 'brightness(0) saturate(100%) invert(35%) sepia(89%) saturate(2893%) hue-rotate(226deg) brightness(102%) contrast(98%)',
-                            }}
-                        />
+                        {/* Icon or Spinner in center */}
+                        {showSpinner ? (
+                            <motion.div
+                                className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full"
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                            />
+                        ) : (
+                            <img
+                                src={icon}
+                                alt="Icon"
+                                className="w-[18px] h-[18px]"
+                                style={{
+                                    filter: 'brightness(0) saturate(100%) invert(35%) sepia(89%) saturate(2893%) hue-rotate(226deg) brightness(102%) contrast(98%)',
+                                }}
+                            />
+                        )}
                     </div>
                 </div>
             )}
