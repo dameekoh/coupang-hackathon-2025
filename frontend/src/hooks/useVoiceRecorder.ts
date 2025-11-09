@@ -6,9 +6,11 @@ interface UseVoiceRecorderReturn {
   transcript: string;
   interimTranscript: string;
   error: string | null;
+  detectedCommand: 'add' | 'cart' | null;
   startRecording: () => void;
   stopRecording: () => void;
   resetTranscript: () => void;
+  clearCommand: () => void;
   isSupported: boolean;
 }
 
@@ -18,9 +20,27 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [detectedCommand, setDetectedCommand] = useState<'add' | 'cart' | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const silenceTimerRef = useRef<number | null>(null);
   const processingTimerRef = useRef<number | null>(null);
+
+  // Detect voice commands from transcript
+  const detectCommand = (text: string): 'add' | 'cart' | null => {
+    const lowerText = text.toLowerCase().trim();
+
+    // Check for "add" command (English, Korean romanization, Korean)
+    if (lowerText.includes('add') || lowerText.includes('애드') || lowerText.includes('추가') || lowerText.includes('babushka') || lowerText.includes('yes')) {
+      return 'add';
+    }
+
+    // Check for "cart" command (Korean, English, variations)
+    if (lowerText.includes('장바구니') || lowerText.includes('카트') || lowerText.includes('cart')) {
+      return 'cart';
+    }
+
+    return null;
+  };
 
   // Check if browser supports Web Speech API
   const isSupported = typeof window !== 'undefined' &&
@@ -59,7 +79,14 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       }
 
       if (final) {
-        setTranscript((prev) => prev + final);
+        const newTranscript = transcript + final;
+        setTranscript(newTranscript);
+
+        // Detect command from the new transcript
+        const command = detectCommand(newTranscript);
+        if (command) {
+          setDetectedCommand(command);
+        }
       }
       setInterimTranscript(interim);
 
@@ -114,6 +141,18 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       return;
     }
 
+    // Don't start if already recording
+    if (isRecording) {
+      return;
+    }
+
+    // Cancel processing state if we're starting a new recording
+    if (processingTimerRef.current) {
+      clearTimeout(processingTimerRef.current);
+      processingTimerRef.current = null;
+      setIsProcessing(false);
+    }
+
     try {
       setError(null);
       recognitionRef.current.start();
@@ -139,6 +178,11 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     setTranscript('');
     setInterimTranscript('');
     setError(null);
+    setDetectedCommand(null);
+  };
+
+  const clearCommand = () => {
+    setDetectedCommand(null);
   };
 
   return {
@@ -147,9 +191,11 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     transcript,
     interimTranscript,
     error,
+    detectedCommand,
     startRecording,
     stopRecording,
     resetTranscript,
+    clearCommand,
     isSupported,
   };
 }

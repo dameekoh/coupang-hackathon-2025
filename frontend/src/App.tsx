@@ -5,6 +5,7 @@ import TranscriptionDisplay from './components/TranscriptionDisplay';
 import ProductCard from './components/ProductCard';
 import VoicePrompt from './components/VoicePrompt';
 import CartSummary from './components/CartSummary';
+import CartPage from './components/CartPage';
 import { useVoiceRecorder } from './hooks/useVoiceRecorder';
 import { useCart } from './hooks/useCart';
 import type { Product } from './types/product';
@@ -25,6 +26,8 @@ const MOCK_PRODUCT: Product = {
   quantity: 1,
 };
 
+type ViewType = 'voice' | 'product' | 'cart';
+
 export default function App() {
   const {
     isRecording,
@@ -32,24 +35,46 @@ export default function App() {
     transcript,
     interimTranscript,
     error,
+    detectedCommand,
     startRecording,
     stopRecording,
     resetTranscript,
+    clearCommand,
   } = useVoiceRecorder();
 
-  const { itemCount, totalPrice, addToCart } = useCart();
-  const [showProduct, setShowProduct] = useState(false);
+  const { items, itemCount, totalPrice, addToCart, removeFromCart, updateQuantity } = useCart();
+  const [currentView, setCurrentView] = useState<ViewType>('voice');
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
 
-  // When processing ends, show the product
+  // When processing ends, show the product and start listening
   useEffect(() => {
-    if (!isProcessing && transcript && !showProduct) {
+    if (!isProcessing && transcript && currentView === 'voice') {
       // In real app, fetch product based on transcript
       // For now, just show mock product
       setCurrentProduct(MOCK_PRODUCT);
-      setShowProduct(true);
+      setCurrentView('product');
+
+      // Auto-start recording to listen for voice commands
+      setTimeout(() => {
+        startRecording();
+      }, 500);
     }
-  }, [isProcessing, transcript, showProduct]);
+  }, [isProcessing, transcript, currentView]);
+
+  // Handle voice commands
+  useEffect(() => {
+    if (!detectedCommand) return;
+
+    if (detectedCommand === 'add' && currentProduct) {
+      // Auto add to cart when "add" is spoken
+      handleAddToCart();
+    } else if (detectedCommand === 'cart') {
+      // Navigate to cart page when "장바구니" is spoken
+      setCurrentView('cart');
+    }
+
+    clearCommand();
+  }, [detectedCommand, currentProduct]);
 
   const handleMicClick = () => {
     // Prevent clicking during processing
@@ -59,8 +84,8 @@ export default function App() {
       stopRecording();
     } else {
       // Clear product screen and start new recording
-      if (showProduct) {
-        setShowProduct(false);
+      if (currentView !== 'voice') {
+        setCurrentView('voice');
         setCurrentProduct(null);
       }
       resetTranscript();
@@ -71,10 +96,18 @@ export default function App() {
   const handleAddToCart = () => {
     if (currentProduct) {
       addToCart(currentProduct);
-      setShowProduct(false);
+      setCurrentView('voice');
       setCurrentProduct(null);
       resetTranscript();
     }
+  };
+
+  const handleCartClick = () => {
+    setCurrentView('cart');
+  };
+
+  const handleBackFromCart = () => {
+    setCurrentView('voice');
   };
 
   // Show primary variant when processing, secondary when recording
@@ -82,7 +115,21 @@ export default function App() {
 
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-gray-50">
-      {showProduct && currentProduct ? (
+      {/* Cart Page */}
+      <AnimatePresence>
+        {currentView === 'cart' && (
+          <CartPage
+            items={items}
+            itemCount={itemCount}
+            totalPrice={totalPrice}
+            onBack={handleBackFromCart}
+            onQuantityChange={updateQuantity}
+            onRemove={removeFromCart}
+          />
+        )}
+      </AnimatePresence>
+
+      {currentView === 'product' && currentProduct ? (
         /* Product Screen */
         <div className="relative flex flex-col items-center justify-center min-h-screen w-full px-6 pb-32">
           {/* Voice Prompt */}
@@ -99,19 +146,23 @@ export default function App() {
           <div className="absolute bottom-24">
             <VoiceButton
               icon={MicIcon}
-              variant="primary"
-              isRecording={false}
-              isProcessing={false}
+              variant="secondary"
+              isRecording={isRecording}
+              isProcessing={isProcessing}
               onClick={handleMicClick}
             />
           </div>
 
           {/* Cart Summary */}
           {itemCount > 0 && (
-            <CartSummary itemCount={itemCount} totalPrice={totalPrice} />
+            <CartSummary
+              itemCount={itemCount}
+              totalPrice={totalPrice}
+              onClick={handleCartClick}
+            />
           )}
         </div>
-      ) : (
+      ) : currentView === 'voice' ? (
         /* Voice Recording Screen */
         <div className="relative flex items-end justify-center min-h-screen pb-36">
           <div className="relative flex items-center justify-center">
@@ -138,16 +189,14 @@ export default function App() {
             </AnimatePresence>
 
             {/* Transcription Display on top of ellipse */}
-            {!showProduct && (
-              <div className="absolute top-[-480px] z-10 w-full">
-                <TranscriptionDisplay
-                  transcript={transcript}
-                  interimTranscript={interimTranscript}
-                  isRecording={isRecording}
-                  error={error}
-                />
-              </div>
-            )}
+            <div className="absolute top-[-480px] z-10 w-full">
+              <TranscriptionDisplay
+                transcript={transcript}
+                interimTranscript={interimTranscript}
+                isRecording={isRecording}
+                error={error}
+              />
+            </div>
 
             {/* Voice Button */}
             <div className="relative z-10">
@@ -160,8 +209,17 @@ export default function App() {
               />
             </div>
           </div>
+
+          {/* Cart Summary */}
+          {itemCount > 0 && (
+            <CartSummary
+              itemCount={itemCount}
+              totalPrice={totalPrice}
+              onClick={handleCartClick}
+            />
+          )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

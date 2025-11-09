@@ -11,6 +11,7 @@ interface UseCartReturn {
   totalPrice: number;
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
+  updateQuantity: (productId: string, newQuantity: number) => void;
   clearCart: () => void;
 }
 
@@ -49,6 +50,19 @@ export function useCart(): UseCartReturn {
     });
   };
 
+  const updateQuantity = (productId: string, newQuantity: number) => {
+    if (newQuantity < 1) {
+      removeFromCart(productId);
+      return;
+    }
+
+    setItems((prevItems) =>
+      prevItems.map((item) =>
+        item.id === productId ? { ...item, cartQuantity: newQuantity } : item
+      )
+    );
+  };
+
   const clearCart = () => {
     setItems([]);
   };
@@ -65,6 +79,7 @@ export function useCart(): UseCartReturn {
     totalPrice,
     addToCart,
     removeFromCart,
+    updateQuantity,
     clearCart,
   };
 }
