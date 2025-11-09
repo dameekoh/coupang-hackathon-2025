@@ -1,0 +1,18 @@
+{
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "text": "매콤한 양념으로 볶아낸 닭갈비와 신선한 채소가 가득! 30분 이내 빠른 배달."
+          },
+        ]
+      },
+    ],
+    "generationConfig": {
+      "responseModalities": ["IMAGE", "TEXT", ],
+      "imageConfig": {
+        "image_size": "1K"
+      },
+    },
+}
